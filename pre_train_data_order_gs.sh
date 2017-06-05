@@ -5,21 +5,17 @@ export DATE_END="20170107"
 
 ## create training data
 read -r -d '' BQ_SQL << EOM
-SELECT uid, gid, LOG(1+sum(rating),2) rating
-FROM (
-  SELECT _TABLE_SUFFIX day, uid, gid, LOG(1+count(*),2) rating
-  FROM \`nono_Unima.weblog_*\`
-  WHERE 
-    ( _TABLE_SUFFIX BETWEEN '$DATE_BEGIN' AND '$DATE_END' )  
-    and action = 'pageload'
-    and page_type = 'gop'
-    and uid IS NOT NULL and uid <> ''
-    and gid IS NOT NULL and gid <> ''
-  group by _TABLE_SUFFIX, uid, gid
-) x
+SELECT uid, gid, LOG(1+count(qty),2) rating
+FROM \`nono_Unima.weblog_*\`
+WHERE 
+  ( _TABLE_SUFFIX BETWEEN '$DATE_BEGIN' AND '$DATE_END' )  
+  and action = 'pageload'
+  and page_type = 'gop'
+  and uid IS NOT NULL and uid <> ''
+  and gid IS NOT NULL and gid <> ''
 group by uid, gid
 EOM
-export TB_TRAIN="$BQ_DB.als_user_gop_R"
+export TB_TRAIN="$BQ_DB.als_user_order_R"
 bq query --destination_table=$TB_TRAIN --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
 bq query "select count(*) from $TB_TRAIN"
 
@@ -52,7 +48,7 @@ from $TB_TRAIN r
   join $TB_MAP_UID u
     on r.uid = u.uid
 EOM
-export TB_RATE_R="$BQ_DB.als_userItemRating4_R"
+export TB_RATE_R="$BQ_DB.als_userItemRating5_R"
 bq query --destination_table=$TB_RATE_R --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
 bq query "select count(*) from $TB_RATE_R"
 
