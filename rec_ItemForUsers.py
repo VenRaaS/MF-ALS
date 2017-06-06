@@ -17,7 +17,7 @@ from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
 from time import time
 t0 = time()
 
-model_save_path = 'Model0605'
+model_save_path = 'Model0606'
 print("begin load model from %s" % (model_save_path))
 model = MatrixFactorizationModel.load(sc, model_save_path)
 
