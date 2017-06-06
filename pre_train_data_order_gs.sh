@@ -6,11 +6,9 @@ export DATE_END="20170107"
 ## create training data
 read -r -d '' BQ_SQL << EOM
 SELECT uid, gid, LOG(1+count(qty),2) rating
-FROM \`nono_Unima.weblog_*\`
+FROM \`nono_Unima.orderlist_*\`
 WHERE 
   ( _TABLE_SUFFIX BETWEEN '$DATE_BEGIN' AND '$DATE_END' )  
-  and action = 'pageload'
-  and page_type = 'gop'
   and uid IS NOT NULL and uid <> ''
   and gid IS NOT NULL and gid <> ''
 group by uid, gid
