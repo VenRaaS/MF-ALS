@@ -1,7 +1,7 @@
 #!/bin/bash
 export BQ_DB="nono_tmp"
-export DATE_BEGIN="20170101"
-export DATE_END="20170107"
+export DATE_BEGIN="20170301"
+export DATE_END="20170331"
 
 ## create training data
 read -r -d '' BQ_SQL << EOM
@@ -21,7 +21,7 @@ group by uid, gid
 EOM
 export TB_TRAIN="$BQ_DB.als_user_gop_R"
 bq query --destination_table=$TB_TRAIN --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
-bq query "select count(*) from $TB_TRAIN"
+bq query "select count(*) num_lines from $TB_TRAIN"
 
 ## create als_mapping table - uid
 read -r -d '' BQ_SQL << EOM
@@ -31,7 +31,7 @@ group by uid
 EOM
 export TB_MAP_UID="$BQ_DB.als_map_uid2Num"
 bq query --destination_table=$TB_MAP_UID --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
-bq query "select count(*) from $TB_MAP_UID"
+bq query "select count(*) num_uid from $TB_MAP_UID"
 
 ## create als_mapping table - gid
 read -r -d '' BQ_SQL << EOM
@@ -41,7 +41,7 @@ group by gid
 EOM
 export TB_MAP_GID="$BQ_DB.als_map_gid2Num"
 bq query --destination_table=$TB_MAP_GID --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
-bq query "select count(*) from $TB_MAP_GID"
+bq query "select count(*) num_gid from $TB_MAP_GID"
 
 ## create userItemRating3_R
 read -r -d '' BQ_SQL << EOM
@@ -54,7 +54,7 @@ from $TB_TRAIN r
 EOM
 export TB_RATE_R="$BQ_DB.als_userItemRating4_R"
 bq query --destination_table=$TB_RATE_R --nouse_legacy_sql --replace --allow_large_results=true $BQ_SQL
-bq query "select count(*) from $TB_RATE_R"
+bq query "select count(*) num_ratings from $TB_RATE_R"
 
 ## export csv.gz
 # export TB_RATE_R="nono_tmp.als_userItemRating3_R"

@@ -23,7 +23,7 @@ def read_rating_raw_file(filePath):
   return ratings_data
 
 # ratings_file = os.path.join('.', 'als_userItemRating4_R.csv')
-rddTraining = read_rating_raw_file("file:///home/W100.ITRI/ua40168/MF-ALS/nono_tmp.als_userItemRating5_R.csv")
+rddTraining = read_rating_raw_file("nono_tmp.als_userItemRating4_R.csv")
 rddTraining.take(3)
 
 import itertools
@@ -40,4 +40,4 @@ finalIter  = 25
 print("Training count: %d" % (rddTraining.count()))
 model = ALS.train(rddTraining, finalRank, finalIter, finalRegul)
 
-model.save(sc, 'Model0606')
+model.save(sc, 'Model0607')

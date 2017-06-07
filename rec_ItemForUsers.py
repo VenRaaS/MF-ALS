@@ -16,7 +16,7 @@ from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
 from time import time
 t0 = time()
 
-model_save_path = 'Model0606'
+model_save_path = 'Model0607'
 print("begin load model from %s" % (model_save_path))
 model = MatrixFactorizationModel.load(sc, model_save_path)
 
@@ -50,5 +50,5 @@ def func2(uid, ufactor):
 
 recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func2(uid, factor)))
 # recommendations.take(30)
-recommendations.saveAsTextFile('recommendProducts4User.csv')
+recommendations.saveAsTextFile('recommendItems4UsersByView.csv')
 
