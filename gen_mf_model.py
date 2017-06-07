@@ -22,7 +22,7 @@ def read_rating_raw_file(filePath):
       .map(lambda line: line.split(",")).map(lambda tokens: (tokens[0],tokens[1],tokens[2])).cache()
   return ratings_data
 
-ratings_file = os.path.join('.', 'als_userItemRating4_R.csv')
+# ratings_file = os.path.join('.', 'als_userItemRating4_R.csv')
 rddTraining = read_rating_raw_file("file:///home/W100.ITRI/ua40168/MF-ALS/nono_tmp.als_userItemRating5_R.csv")
 rddTraining.take(3)
 
