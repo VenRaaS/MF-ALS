@@ -8,6 +8,7 @@ sc =SparkContext(appName="PythonALSrecommendProductsForUsers")
 
 import pandas as pd
 import numpy as np
+import operator 
 #import scipy.stats as st
 #from scipy import stats
 
@@ -48,7 +49,20 @@ def func2(uid, ufactor):
     mappedUserRecommendationArray.append( '%s,%s,%s' % (uid,itemId,row[0]))  # mappedUserRecommendationArray.append((uid,itemId,row[0])) 
   return mappedUserRecommendationArray
 
-recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func2(uid, factor)))
+def func(uid, ufactor):
+  userRecommendationMatrix = ufactor*(bc_productFeaturesMatrixT.value)
+  ratingdict = {}
+  i=0
+  for i in range(0,len(bc_productArray.value)):
+    ratingdict[bc_productArray.value[i]]=userRecommendationMatrix.item((0,i))
+  sorted_x = sorted(ratingdict.items(), key=operator.itemgetter(1), reverse=True)
+  mappedUserRecommendationArray = []
+  for (pid, score) in sorted_x[:10]:
+    mappedUserRecommendationArray.append( '%s,%s,%s' % (uid,pid,score))  # mappedUserRecommendationArray.append((uid,itemId,row[0])) 
+  return mappedUserRecommendationArray
+
+
+recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func(uid, factor)))
 # recommendations.take(30)
 recommendations.saveAsTextFile('recommendItems4UsersByView.csv')
 
