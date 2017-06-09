@@ -4,7 +4,7 @@
 # nohup spark-submit --driver-memory 8G --executor-memory 16G --conf spark.yarn.executor.memoryOverhead=4096 rec_ItemForUsers.py > run0606-1101.log &
 
 from pyspark import SparkContext, SparkConf
-sc =SparkContext(appName="PythonALSrecommendProductsForUsers")
+sc =SparkContext(appName="pyALSrecommendItemsForUsers")
 
 import pandas as pd
 import numpy as np
@@ -35,34 +35,21 @@ for x in productFeatures:
   productArray.append(x[0])
   productFeaturesArray.append(x[1])  
 
-matrix=np.matrix(productFeaturesArray)
-bc_productArray=sc.broadcast(productArray)
-bc_productFeaturesMatrixT=sc.broadcast(matrix.T)
+productFeaturesMatrix = np.matrix(productFeaturesArray)
+productMatrixT = np.matrix(productArray).T
+bc_productMatrixT=sc.broadcast(productMatrixT)
+bc_productFeaturesMatrix=sc.broadcast(productFeaturesMatrix)
 
-def func2(uid, ufactor):
-  # userFeatureMatrix = np.matrix(ufactor)
-  userRecommendationMatrix = ufactor*(bc_productFeaturesMatrixT.value)
-  df = pd.DataFrame(data=userRecommendationMatrix.T, columns=["rating"], index=np.matrix(bc_productArray.value).T)
-  df.sort_values(by='rating', inplace=True, ascending=False)
+def func5(uid, ufactor):
+  ratingMatrix = (bc_productFeaturesMatrix.value)*np.matrix(ufactor).T
+  df = pd.DataFrame(data=ratingMatrix, columns=["rating"], index=bc_productMatrixT.value)
+  df_topK = df.sort_values(by='rating', ascending=False).head(10) ## nlargest
   mappedUserRecommendationArray = []
-  for itemId, row in df[:10].iterrows(): # Top K Item
+  for itemId, row in df_topK.iterrows(): # Top K Item
     mappedUserRecommendationArray.append( '%s,%s,%s' % (uid,itemId,row[0]))  # mappedUserRecommendationArray.append((uid,itemId,row[0])) 
   return mappedUserRecommendationArray
 
-def func(uid, ufactor):
-  userRecommendationMatrix = ufactor*(bc_productFeaturesMatrixT.value)
-  ratingdict = {}
-  i=0
-  for i in range(0,len(bc_productArray.value)):
-    ratingdict[bc_productArray.value[i]]=userRecommendationMatrix.item((0,i))
-  sorted_x = sorted(ratingdict.items(), key=operator.itemgetter(1), reverse=True)
-  mappedUserRecommendationArray = []
-  for (pid, score) in sorted_x[:10]:
-    mappedUserRecommendationArray.append( '%s,%s,%s' % (uid,pid,score))  # mappedUserRecommendationArray.append((uid,itemId,row[0])) 
-  return mappedUserRecommendationArray
-
-
-recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func(uid, factor)))
+recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func5(uid, factor)))
 # recommendations.take(30)
-recommendations.saveAsTextFile('recommendItems4UsersByView.csv')
+recommendations.saveAsTextFile('recommendItems4Users0609.csv')
 
