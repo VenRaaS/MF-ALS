@@ -35,21 +35,18 @@ for x in productFeatures:
   productArray.append(x[0])
   productFeaturesArray.append(x[1])  
 
-productFeaturesMatrix = np.matrix(productFeaturesArray)
-productMatrixT = np.matrix(productArray).T
-bc_productMatrixT=sc.broadcast(productMatrixT)
-bc_productFeaturesMatrix=sc.broadcast(productFeaturesMatrix)
+bc_productArray=sc.broadcast(productArray)
+bc_productFeaturesMatrixT=sc.broadcast(productFeaturesMatrix.T)
 
-def func5(uid, ufactor):
-  ratingMatrix = (bc_productFeaturesMatrix.value)*np.matrix(ufactor).T
-  df = pd.DataFrame(data=ratingMatrix, columns=["rating"], index=bc_productMatrixT.value)
-  df_topK = df.sort_values(by='rating', ascending=False).head(10) ## nlargest
-  mappedUserRecommendationArray = []
-  for itemId, row in df_topK.iterrows(): # Top K Item
-    mappedUserRecommendationArray.append( '%s,%s,%s' % (uid,itemId,row[0]))  # mappedUserRecommendationArray.append((uid,itemId,row[0])) 
-  return mappedUserRecommendationArray
+def recomdItems4User(uid, ufactor):
+  predictMatrix = ufactor * bc_productFeaturesMatrixT.value
+  df2 = pd.DataFrame( {'itemId': bc_productArray.value,
+                       'rating': predictMatrix.A1})
+  df_topK = df2.nlargest(10, 'rating')
+  df_topK.insert(0, 'userId', np.full((10), uid, np.int))
+  return df_topK.to_records(index=False)
 
-recommendations=model.userFeatures().flatMap(lambda (uid,factor): (func5(uid, factor)))
+recommendations=model.userFeatures().flatMap(lambda (uid,factor): (recomdItems4User(uid, factor)))
 # recommendations.take(30)
 recommendations.saveAsTextFile('recommendItems4Users0609.csv')
 

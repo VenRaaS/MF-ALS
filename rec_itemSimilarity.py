@@ -4,12 +4,12 @@
 # nohup spark-submit --driver-memory 8G --executor-memory 16G --conf spark.yarn.executor.memoryOverhead=4096 rec_ItemForUsers.py > run0606-1805.log &
 
 from pyspark import SparkContext, SparkConf
-sc =SparkContext(appName="PythonALSitemSimilarity")
+sc =SparkContext(appName="pyALSitemSimilarity")
 
 import pandas as pd
 import numpy as np
-#import scipy.stats as st
-#from scipy import stats
+import operator 
+from sklearn.metrics.pairwise import cosine_similarity
 
 import os
 from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
@@ -24,26 +24,31 @@ TopKItems = 10
 print("recommendProductsForUsers %s" % (TopKItems))
 
 #Collect product feature matrix
-bc_productFeatures = sc.broadcast(model.productFeatures().collect())
+productFeatures = model.productFeatures().collect() 
+productArray=[]
+productFeaturesArray=[]
+for (pid, pfactor) in productFeatures:
+  productArray.append(pid)
+  productFeaturesArray.append(pfactor)   
 
-import operator 
-import numpy as np
+bc_productArray=sc.broadcast(productArray)
+bc_productFeaturesArray=sc.broadcast(productFeaturesArray)
+
 
 def cosineSImilarity(x,y):
     return np.dot(x,y)/(np.linalg.norm(x)*np.linalg.norm(y))
 
-def func3(itemId, itemFactor):
-    simsdict={}
-    for (pid, pfactor) in bc_productFeatures.value:
-        simsdict[pid] = cosineSImilarity(np.array(pfactor), np.array(itemFactor))
-    sorted_x = sorted(simsdict.items(), key=operator.itemgetter(1), reverse=True)
-    itemSimilarityArray = []
-    for (pid, score) in sorted_x[1:11]: # first one similarity always equal same item
-        itemSimilarityArray.append('%s,%s,%s' % (itemId,pid,score))
-    return itemSimilarityArray
+# sc.parallelize , plan to change to pandas
+def vectorSimilarity(itemId, itemFactors):
+  sim = cosine_similarity(bc_productFeaturesArray.value, np.array(itemFactors))
+  df = pd.DataFrame( { 'sim': sim.T[0], 
+                     'iid':bc_productArray.value})
+  df_topK = df.nlargest(10, 'sim')
+  df_topK.insert(0, 'itemId', np.full((10), itemId, np.int))
+  return df_topK[1:].to_records(index=False)
 
-recommendations=model.productFeatures().map(lambda (uid,factor): (func3(uid, factor)))
+recommendations=model.productFeatures().flatMap(lambda (uid,factor): (vectorSimilarity(uid, factor)))
 # recommendations.take(30)
-recommendations.saveAsTextFile('itemSimilarity.csv')
+recommendations.saveAsTextFile('itemSimilarity0613.csv')
 
 
