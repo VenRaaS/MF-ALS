@@ -16,7 +16,8 @@ from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
 from time import time
 t0 = time()
 
-model_save_path = 'Model0606'
+#model_save_path = 'hdfs://itrihd34:8020/user/ua40168/Model0606'
+model_save_path = 'gohappy_userItemRating_201705'
 print("begin load model from %s" % (model_save_path))
 model = MatrixFactorizationModel.load(sc, model_save_path)
 
@@ -38,17 +39,18 @@ bc_productFeaturesArray=sc.broadcast(productFeaturesArray)
 def cosineSImilarity(x,y):
     return np.dot(x,y)/(np.linalg.norm(x)*np.linalg.norm(y))
 
-# sc.parallelize , plan to change to pandas
 def vectorSimilarity(itemId, itemFactors):
   sim = cosine_similarity(bc_productFeaturesArray.value, np.array(itemFactors))
   df = pd.DataFrame( { 'sim': sim.T[0], 
                      'iid':bc_productArray.value})
   df_topK = df.nlargest(10, 'sim')
   df_topK.insert(0, 'itemId', np.full((10), itemId, np.int))
-  return df_topK[1:].to_records(index=False)
+  return [df_topK.to_csv(index=False, header=False)]
 
-recommendations=model.productFeatures().flatMap(lambda (uid,factor): (vectorSimilarity(uid, factor)))
-# recommendations.take(30)
-recommendations.saveAsTextFile('itemSimilarity0613.csv')
+recommendations=model.productFeatures().map(lambda (iid,ifactor): (vectorSimilarity(iid, ifactor)))
+
+# recommendations=model.productFeatures().repartition(2000).mapPartitions(func)
+#recommendations.saveAsTextFile('hdfs://itrihd34:8020/user/ua40168/itemSimilarity0613-2.csv')
+recommendations.saveAsTextFile('gohappy_itemSimilarity_201705.csv')
 
 

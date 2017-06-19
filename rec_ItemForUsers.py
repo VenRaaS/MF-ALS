@@ -35,18 +35,18 @@ for x in productFeatures:
   productArray.append(x[0])
   productFeaturesArray.append(x[1])  
 
+productFeaturesMatrix = np.matrix(productFeaturesArray)
+productMatrixT = np.matrix(productArray).T
+
 bc_productArray=sc.broadcast(productArray)
 bc_productFeaturesMatrixT=sc.broadcast(productFeaturesMatrix.T)
 
 def recomdItems4User(uid, ufactor):
   predictMatrix = ufactor * bc_productFeaturesMatrixT.value
-  df2 = pd.DataFrame( {'itemId': bc_productArray.value,
-                       'rating': predictMatrix.A1})
-  df_topK = df2.nlargest(10, 'rating')
-  df_topK.insert(0, 'userId', np.full((10), uid, np.int))
-  return df_topK.to_records(index=False)
+  s = pd.Series(predictMatrix.A1, index=bc_productArray.value)
+  return ["%s,%s,%s"%(uid, k, v) for (k, v) in s.nlargest(10).iteritems()]
 
 recommendations=model.userFeatures().flatMap(lambda (uid,factor): (recomdItems4User(uid, factor)))
 # recommendations.take(30)
-recommendations.saveAsTextFile('recommendItems4Users0609.csv')
+recommendations.saveAsTextFile('recommendItems4Users0616.csv')
 

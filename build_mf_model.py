@@ -23,7 +23,7 @@ def read_rating_raw_file(filePath):
   return ratings_data
 
 # ratings_file = os.path.join('.', 'als_userItemRating4_R.csv')
-rddTraining = read_rating_raw_file("nono_tmp.als_userItemRating4_R.csv")
+rddTraining = read_rating_raw_file("gohappy_tmp.als_userItemRating_R_201705.csv")
 rddTraining.take(3)
 
 import itertools
@@ -33,11 +33,11 @@ from pyspark.mllib.recommendation import ALS, MatrixFactorizationModel, Rating
 from time import time
 t0 = time()
 
-finalRank  = 25
+finalRank  = 20
 finalRegul = 0.01
 finalIter  = 25
 
 print("Training count: %d" % (rddTraining.count()))
 model = ALS.train(rddTraining, finalRank, finalIter, finalRegul)
 
-model.save(sc, 'Model0607')
+model.save(sc, 'gohappy_userItemRating_201705')
